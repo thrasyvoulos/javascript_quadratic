@@ -1,0 +1,357 @@
+
+<html lang="en">
+<head>
+<title>επίλυση τριωνύμου και γραφική παρασταση</title>
+
+<link rev="made" href="mailto:thr.bark@gmail.com">
+<meta name="Author" lang="en" content="barkouzos thrasos">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<style type="text/css">
+body {
+	background-color: #FFFFCC;
+	color: black;
+}
+h1 { background-color: #EEEEDD; color: black }
+h2 { background-color: #FFFFEE; color: black }
+.button { width: 4em; font-family: monospace; font-style: normal; font-size: 0.75em }
+div.picture {
+	white-space: pre !important;
+	line-height: 1px !important;
+	font-family: monospace !important;
+	font-size: 1px !important;
+	font-weight: bolder !important;
+	letter-spacing: 0px !important;
+	word-spacing: 0px !important;
+	font-style: normal !important;
+	text-decoration: none !important;
+	}
+</style>
+<script type="text/javascript">
+// ----------------------------------------- Ολικές μεταβλητές (global) ----------------------------------
+var FF,FXI,FXA,FYI,FYA;
+var PicW = new Number(600);
+var PicH = new Number(400);
+var PicData = new Picture();
+var PlotType = false;
+
+var Xi = new Number(0); var Xa = new Number(0);
+var Yi = new Number(0); var Ya = new Number(0);
+var a = new Number(0);
+var b = new Number(0);
+var c = new Number(0);
+var xk = new Number(0);
+var yk = new Number(0);
+var d = new Number(0);
+var x1 =  new Number(0);
+var x2 =  new Number(0);
+
+//------------------------------------- Επίλυση Τριωνύμου -----------------------------
+function quad()
+{
+	a=window.document.forms['plotForm']['av'].value;
+	b=window.document.forms['plotForm']['bv'].value;
+	c=window.document.forms['plotForm']['cv'].value;
+	d=(Math.pow(b,2)-(4*a*c));
+		
+	if(a!=0) {
+		x1=(-b + Math.sqrt(d)) / 2*a
+		x2=(-b - Math.sqrt(d)) / 2*a
+		if(d>0) {
+			window.document.forms['plotForm']['r1'].value = x1;
+			window.document.forms['plotForm']['r2'].value = x2;
+			Showmessage("Οι ρίζες είναι πραγματικές και άνισες")
+		}
+		else if(d==0) {
+			window.document.forms['plotForm']['r1'].value = x1;
+			window.document.forms['plotForm']['r2'].value = x2;
+			Showmessage("Οι ρίζες είναι πραγματικές και ίσες");
+		}
+		else {
+			window.document.forms['plotForm']['r1'].value = "μιγαδική";
+			window.document.forms['plotForm']['r2'].value = "μιγαδική";
+			Showmessage("Οι ρίζες είναι μιγαδικές");
+		}
+		xk = -b/(2*a);
+		yk = -d/(4*a)
+	}
+// Ανανέωση των τιμών στα 
+	window.document.forms['plotForm']['av'].value = a;
+	window.document.forms['plotForm']['bv'].value = b;
+	window.document.forms['plotForm']['cv'].value = c;
+	window.document.forms['plotForm']['x0'].value = xk;
+	window.document.forms['plotForm']['y0'].value = yk;
+}
+
+//-----------------------------------------------------------------
+// βρές τα όρια στους άξονες ώστε να φανεί η γραφική παράσταση γύρω
+// απο την κορυφή του τριωνύμου.
+//-----------------------------------------------------------------
+function findlimits()
+{
+//	Xi Xa Yi Ya
+	quad();
+	Xi = xk - 50;
+	Xa = xk + 50;
+	if (a>=0) {
+		Yi = yk - 10;
+		Ya = yk + 90;
+	} else {
+		Yi = yk - 90;
+		Ya = yk + 10;
+	}
+	
+	window.document.forms['plotForm']['xmin'].value = Xi;
+	window.document.forms['plotForm']['ymin'].value = Yi;
+	window.document.forms['plotForm']['xmax'].value = Xa;
+	window.document.forms['plotForm']['ymax'].value = Ya;
+}
+
+//------------------ μεταφορά των μεταβλητών εισόδου στους πίνακες lp & rp -----------------------
+function Scan(x1,y1,x2,y2,lp,rp)
+{
+	var i = 0;
+	var cc = (x2 - x1) / (y2 - y1);
+	var dd = x1 - cc * y1;
+
+	if(y1 <= y2)
+	{
+		for(i = y1; i <= y2; i++)
+			rp[i] = parseInt(cc * i + dd);
+	}
+	else
+	{
+		for(i = y2; i <= y1; i++)
+			lp[i] = parseInt(cc * i + dd);
+	}
+}
+
+//------------------------------ ReplaceCharacter = αντικατάσταση ενός χαρακτήρα σε string ----------------------------
+function ReplaceCharacter(position,character)
+{
+	if(position < 0 || position >= this.length)
+		return this;
+	return this.substring(0,position) + character + this.substring(position + character.length);
+}
+String.prototype.ReplaceChar = ReplaceCharacter;
+
+// -------- Οι functions του objecet : πίνακα PicData -------------------------------------
+function Picture()
+{
+	this.lines = new Array();
+	this.tempString = new String('#');
+	
+	while(this.tempString.length < PicW)
+		this.tempString += this.tempString;
+		
+	this.tempString = this.tempString.substring(0,PicW);
+	
+	while(this.lines.length < PicH)
+		this.lines.push(this.tempString);
+
+	this.SetPixel = function(x,y)
+	{
+		y = parseInt(y);
+		if(y < 0 || y >= PicH)
+			return;
+			
+		if(this.lines[y].charAt(x) != ' ')
+			this.lines[y] = this.lines[y].ReplaceChar(x,' ');
+	}
+	
+	this.GetLine = function()
+	{
+		return this.lines.pop();
+	}
+}
+
+//--------------------------- Θέσε τις τιμές των σημείων (χ,ψ) στον πίνακα τιμών για να γίνουν Plot. ----------------
+function DoPlot(av,bv,cv)
+{
+	quad();
+	var i = 0;
+	var tmp;
+	var graphic = new Array();
+	var timeCalc = new Number(0);
+	var timeDraw = new Number(0);
+
+
+// NaN = Not a Number -- έλεγχος λάθους αριθμών λόγω τιμών πέρα απο τα όρια min - max.
+	if(isNaN(Xi = parseFloat(FXI.value)))
+		return ShowError("x-min invalid");
+	if(isNaN(Xa = parseFloat(FXA.value)))
+		return ShowError("x-max invalid");
+		
+	if(Xi > Xa) // τότε αντάλλαξε τα xa, xi
+	{
+		i = Xi; Xi= Xa; Xa = i;
+	}
+	
+	if(Xi == Xa)
+		Xa += 0.0001; // Τα όρια δεν πρέπει να είναι ίσα.
+		
+	FXI.value = Xi;
+	FXA.value = Xa;
+	
+// -------- ακόμα μερικοί έλεγχοι λάθους για τα όρια στον άξονα ΥΥ'
+	if(isNaN(Yi = parseFloat(FYI.value)))
+		return ShowError("y-min invalid");
+	if(isNaN(Ya = parseFloat(FYA.value)))
+		return ShowError("y-max invalid");
+	if(Yi > Ya)
+	{
+		i = Yi; Yi= Ya; Ya = i;
+	}
+	if(Yi == Ya)
+		Ya += 0.0001;
+	FYI.value = Yi;
+	FYA.value = Ya;
+	
+// εδώ δημιουργούνται οι πίνακες που θα περιέχουν τα δεδομένα της γραφικής παράστασης.
+	PicData = new Picture();
+
+// υπολόγισε τα σημεία του τριωνύμου (και υπολόγισε και τη χρονική διάρκεια που κανει ο ΗΥ να τα υπολογίσει).
+	timeCalc = GetTimer();
+	DoPlot2D();
+	timeCalc = GetTimer() - timeCalc;
+
+	timeDraw = GetTimer();
+	
+// Δείξε στο layer του φυλλομετρητή την παράσταση όλη.
+// -----------
+// Το layer GraphHere είναι αυτό που θα "φιλοξενήσει" την γραφική παράσταση.
+	while(i = PicData.GetLine())
+		graphic.push(i.substring(0,PicW).split(' ').join('&nbsp;'));
+	window.document.getElementById('GraphHere').innerHTML = graphic.join('<br>');
+	
+	timeDraw = GetTimer() - timeDraw;
+
+// To Μήνυμα χρόνου δεν φαίνεται γιατί στο τέλος το μήνυμα του φυλλομετρητη "Ολοκληρώθηκε" σβήνει το δικό μας μήνυμα.
+	window.status= 'Calculation time: '+(Math.round(timeCalc / 100) / 10) +'s, drawing time: '+(Math.round(timeDraw/100)/10)+'s';
+}
+
+//--------------------- Διάβασε τον χρόνο συστήματος για να υπολογίζει την δειάρκεια των λειτουργειών -------------------
+
+function GetTimer()
+{
+	var t = new Date();
+	return ((t.getHours() * 60 + t.getMinutes()) * 60 + t.getSeconds()) * 1000 + t.getMilliseconds();
+}
+
+// ------- Μετατροπή των σημείων (χ,ψ) απο το καρτεσιανό σύστημα στο σύστημα απεικόνισης Χ(0:XPixels), Y(0:Ypixels) ---
+// ------------------ δηλ στο παράθυρο του browser που θα γίνει η γραφική παράσταση. ---------------------------------
+// --------------- Ουσιαστικά απλά αποθηκεύει τα σημεία σε πίνακες για να σχεδιασθούν αργότερα.------------------------
+function DoPlot2D()
+{
+	var i = 0;
+	var yyi = 0;
+	var lx = 0;
+	var ly = 0;
+	var Dx = 0;
+	var Dy = 0;
+	var DxInv = 0; // = 1/Dx;
+	var DyInv = 0; // = 1/Dy;
+
+	Dx = parseFloat((Xa - Xi) / PicW);
+	Dy = parseFloat((Ya - Yi) / PicH);
+	DxInv = parseFloat(PicW / (Xa - Xi)); // = 1/Dx;
+	DyInv = parseFloat(PicH / (Ya - Yi)); // = 1/Dy;
+
+
+// Σχεδιασμός άξονα XX' ----------------------------------------------------
+	ly = parseInt(PicH*(-Yi)/(Ya-Yi));
+		for(i = Xa; i >= Xi; i -=  2*Dx) {
+			lx = parseInt(PicW*(i-Xi)/(Xa-Xi));
+			PicData.SetPixel(lx,ly);
+		}
+
+// Σχεδιασμός άξονα ΥΥ' ----------------------------------------------------
+	lx = parseInt(PicW*(-Xi)/(Xa-Xi));
+	
+		for(i = Yi; i <= Ya; i += Dy/2) {
+			ly = parseInt(PicH-PicH*(i-Yi)/(Ya-Yi));
+			PicData.SetPixel(lx,ly);
+		}
+
+// Εύρεση των σημείων (X,f(x)) της γραφικής παράστασης.
+	for(i=Xi; i < Xa; i+=Dx/2)
+	{
+		lx = parseInt(PicW*(i-Xi)/(Xa-Xi));
+		yyi = a*i*i + b*i + c*1,0;
+		ly = parseInt(PicH*(yyi-Yi)/(Ya-Yi));
+		if ((ly>0) && (ly<PicH))  { 
+			PicData.SetPixel(lx,ly);  
+		}
+	}
+}
+
+//-------------------- output messages στο παράθυρο μηνυμάτων --------------------------
+function Showmessage(showThis)
+{
+	window.document.forms['plotForm']['message'].value = showThis;
+}
+
+//-------- Variables initialization ----------------------------------------------------
+function DoOnLoad()
+{
+	FF  = window.document.forms['plotForm']['fnfx'];
+	FXI = window.document.forms['plotForm']['xmin'];
+	FXA = window.document.forms['plotForm']['xmax'];
+	FYI = window.document.forms['plotForm']['ymin'];
+	FYA = window.document.forms['plotForm']['ymax'];
+	av.focus();
+}
+//----------------------- End of Javascript --------------------------------------------
+</script>
+</head>
+<body onLoad="DoOnLoad()">
+
+<h1>ΤΡΙΩΝΥΜΟ: Ρίζες και Γράφημα</h1>
+<form name="plotForm" action="plotter.htm" method="POST" onSubmit="DoPlot(av,bv,cv); return false">
+<table>
+
+<tr>
+<td width="367" valign="top">
+<fieldset>
+<legend>Τριώνυμο για επεξεργασία:</legend><br>
+a:<input name="av" type="text" value="1" size="6" maxlength="10">
+b:<input name="bv" type="text" value="2" size="6" maxlength="10">
+c:<input name="cv" type="text" value="1" size="6" maxlength="10"><br><br>
+<legend>Όρια τιμων Χ,Υ γραφήματος</legend>
+<input value="Αυτόματα όρια γραφήματος" onClick="findlimits()" type="button">
+<br>
+x-min: <input type="text" name="xmin" size="12" value="-6.2">
+, x-max: <input type="text" name="xmax" size="12" value="6.2"><br>
+y-min: <input type="text" name="ymin" size="12" value="-3.8">
+, y-max: <input type="text" name="ymax" size="12" value="3.8"><br><br>
+<input type="submit" value="Γράφημα & Ρίζες">
+<input type="reset" value="Reset" style="background-color:#cc0000; color: #ffffff;">
+<br>
+Ρίζα 1: 
+<input name="r1" id="r1"  size="6" readonly="readonly"; type="text">
+Ρίζα 2: <input name="r2" id="r2"  size="6" readonly="readonly"; type="text"><br><br>
+<input type="submit" value="Κορυφή">
+
+<br>
+
+Χ0: <input name="x0" id="x0"  size="6" readonly="readonly"; type="text">
+Υ0: <input name="y0" id="y0"  size="6" readonly="readonly"; type="text"><br>
+</fieldset>
+
+<fieldset>
+<legend>Μηνύματα:</legend>
+<input type="text" name="message" size="50" value="" readonly>
+</fieldset></tr>
+</table>
+</form>
+<hr>
+<div id="GraphHere" class="picture">
+
+Το γράφημα εμφανίζεται εδώ
+
+</div>
+<hr>
+
+</body>
+</html>
