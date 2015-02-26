@@ -1,0 +1,2 @@
+# javascript_quadratic
+s
